@@ -1,0 +1,459 @@
+<html>
+<head>
+<style>
+body 
+{
+	background-image:url('sky_image.bmp');
+}
+.font_color
+{
+	color:white;
+	font-family:Lucida Sans Unicode, Lucida Grande, sans-serif;
+}
+.font_color_orange
+{
+	color:orange;
+}
+.font_color_blue
+{
+	color:#1E90FF;
+}
+.font_style_city
+{
+	font-size:45px;
+}
+.font_style_region
+{
+	font-size:20px;
+}
+.font_style1
+{
+	font-size:18px;
+}
+.font_style2
+{
+	font-size:12px;
+}
+.font_style3
+{
+	font-size:65px;
+}
+.font_style4
+{
+	font-size:35px;
+}
+.font_style5
+{
+	margin-left:2cm;
+	color:white;
+	font-family:Lucida Sans Unicode, Lucida Grande, sans-serif;
+}
+.font_style6
+{
+	font-size:10px;
+}
+.margin_left
+{
+	margin-left:2cm;
+}
+.margin_left2
+{
+	margin-left:4cm;
+}
+.margin_left3
+{
+	margin-left:24cm;
+}
+.underline
+{
+text-decoration:underline;
+}
+</style>
+<script src="http://yui.yahooapis.com/3.13.0/build/yui/yui-min.js"></script>
+<script>
+	var globalDataTable = "";
+	var temperatureUnit = "f";
+	var facebook_added = false;
+	var parsedJSON ="";
+	function validate(tempConvert){
+		var input = document.getElementById('text1').value;
+		var zipcode_pattern = new RegExp("[0-9]+");
+		var city_pattern1 = new RegExp("(^[A-Za-z ]+), ([A-Z][A-Z])$");
+		var city_pattern2 = new RegExp("(^[A-Za-z ]+), ([A-Z][A-Z][A-Z])$");
+		var city_pattern3 = new RegExp("(^[A-Za-z ]+), ([A-Z][A-Z]), ([A-Z][A-Z][A-Z])$");
+		var locationType = "";
+		var validation = false;
+		if(tempConvert ===true){
+			if(temperatureUnit == "f"){
+				temperatureUnit = "c";
+			}
+			else if(temperatureUnit == "c"){
+				temperatureUnit = "f";
+			}
+		}
+		else if(tempConvert === false){
+			temperatureUnit = "f";
+		}
+		if(zipcode_pattern.test(input)){
+			//contains a digit
+			if(isNaN(input) || input.length != 5){
+				//not a number or length != 5
+				alert('Invalid zipcode: must be five digits \nExample: 90089');
+			}
+			else{
+				//is a valid zip code
+				locationType = "zipcode";
+				validation = true;	
+			}	
+		}
+		else{
+			//not contains a digit
+			if(city_pattern1.test(input) || city_pattern2.test(input) || city_pattern3.test(input)){
+				//valid city
+				locationType = "city";
+				validation = true;
+			}
+			else{
+				//invalid city
+				alert('Invalid location: must include state or country separated by comma \nExample: Los Angeles, CA');
+			}
+		}
+		if(validation){
+			//url = "http://localhost:8080/WeatherProject/MyWeatherServlet";
+			url = "http://cs-server.usc.edu:34067/examples/servlet/weathersearch";
+			document.getElementById('hidden1').value=locationType;
+			document.getElementById('hidden2').value=temperatureUnit;
+			url = url+"?location="+input+"&location_type="+locationType+"&temperature_unit="+temperatureUnit;
+			//alert(url);
+			try{
+			if (window.XMLHttpRequest)
+			{
+				httpReq=new XMLHttpRequest();
+			}
+			else
+			{
+				httpReq=new ActiveXObject("Microsoft.XMLHTTP");
+			}
+			httpReq.onreadystatechange=function()
+  			{
+  				if (httpReq.readyState==4 && httpReq.status==200)
+    			{
+  					//alert(httpReq.responseText);
+    				var response = httpReq.responseText;
+    				parsedJSON = eval('('+response+')');
+    				if(parsedJSON.weather.location.city != null && parsedJSON.weather.location.region != null && parsedJSON.weather.location.country != null){
+  
+    				if(globalDataTable != ""){
+    					globalDataTable.destroy();
+    				}
+    				YUI().use('datatable', function (Y) {
+
+    					var data = [
+    					    { Day: parsedJSON.weather.forecast[0].day, Weather: parsedJSON.weather.forecast[0].text,   High: parsedJSON.weather.forecast[0].high+"&deg;"+ parsedJSON.weather.units.temperature, Low: parsedJSON.weather.forecast[0].low+"&deg;"+ parsedJSON.weather.units.temperature },
+    					    { Day: parsedJSON.weather.forecast[1].day, Weather: parsedJSON.weather.forecast[1].text,   High: parsedJSON.weather.forecast[1].high+"&deg;"+ parsedJSON.weather.units.temperature, Low: parsedJSON.weather.forecast[1].low+"&deg;"+ parsedJSON.weather.units.temperature },
+    					    { Day: parsedJSON.weather.forecast[2].day, Weather: parsedJSON.weather.forecast[2].text,   High: parsedJSON.weather.forecast[2].high+"&deg;"+ parsedJSON.weather.units.temperature, Low: parsedJSON.weather.forecast[2].low+"&deg;"+ parsedJSON.weather.units.temperature },
+    					    { Day: parsedJSON.weather.forecast[3].day, Weather: parsedJSON.weather.forecast[3].text,   High: parsedJSON.weather.forecast[3].high+"&deg;"+ parsedJSON.weather.units.temperature, Low: parsedJSON.weather.forecast[3].low+"&deg;"+ parsedJSON.weather.units.temperature },
+    					    { Day: parsedJSON.weather.forecast[4].day, Weather: parsedJSON.weather.forecast[4].text,   High: parsedJSON.weather.forecast[4].high+"&deg;"+ parsedJSON.weather.units.temperature, Low: parsedJSON.weather.forecast[4].low+"&deg;"+ parsedJSON.weather.units.temperature }
+    					];
+
+    					var table = new Y.DataTable({
+    					    columns: ["Day", "Weather",  
+    					              {key : "High", formatter: '<div class="font_color_orange">{value}</div>', allowHTML: true},
+    					    		 {key : "Low", formatter: '<div class="font_color_blue">{value}</div>', allowHTML: true  }
+    					              ],
+    					    data: data,
+    					});
+
+    					table.render("#dataTable");
+    					globalDataTable = table;
+    					});
+    				
+    		        YUI().use('node', function (Y) {
+    		            var cityName = Y.one('#cityName');
+    		            var regionCountry = Y.one('#regionCountry');
+    		            var imgWeather = Y.one('#imgWeather');
+    		            var highLow = Y.one('#highLow');
+    		            var temperature = Y.one('#temperature');
+    		            var type = Y.one('#type');
+    		            var dataTable = Y.one('#dataTable');
+    		            var deg = Y.one('#deg');
+    		            var forecast = Y.one('#forecast');
+    		            
+    		            cityName.setHTML(parsedJSON.weather.location.city);
+    		            cityName.addClass('font_color');
+    		            cityName.addClass('font_style_city');
+    		            cityName.addClass('margin_left');
+    		            
+    		            regionCountry.setHTML(parsedJSON.weather.location.region + ", " + parsedJSON.weather.location.country);
+    		            regionCountry.addClass('font_color');
+    		            regionCountry.addClass('font_style_region');
+    		            regionCountry.addClass('margin_left');
+    		            
+    		            imgWeather.setHTML("<img src=" + parsedJSON.weather.img +">&nbsp;" +"<sup>"+parsedJSON.weather.condition.text+"</sup>");
+    		            imgWeather.addClass('font_color');
+    		            imgWeather.addClass('font_style2');
+    		            imgWeather.addClass('margin_left');
+    		            
+    		            highLow.setHTML("&uarr;" +parsedJSON.weather.forecast[0].high +"&deg;"+ parsedJSON.weather.units.temperature + "&nbsp;&nbsp;&nbsp;" +"&darr;"+ parsedJSON.weather.forecast[0].low +"&deg;" + parsedJSON.weather.units.temperature);
+    		            highLow.addClass('font_color');
+    		            highLow.addClass('font_style2');
+    		            highLow.addClass('margin_left');
+    		            
+    		            temperature.setHTML(parsedJSON.weather.condition.temp);
+    		            temperature.addClass('font_color');
+    		            temperature.addClass('font_style3');
+    		            temperature.addClass('margin_left');
+    		            
+    		            deg.setHTML("<sup>&deg;</sup>");
+    		            deg.addClass('font_color');
+    		            deg.addClass('font_style4');
+    		            
+    		            type.setHTML("<sup>"+ parsedJSON.weather.units.temperature + "</sup>");
+    		            type.addClass('font_color');
+    		            type.addClass('font_style4');
+    		            type.addClass('underline');
+    		            
+    		            forecast.setHTML("Forecast");
+    		            forecast.addClass('font_color');
+    		            forecast.addClass('font_style2');
+    		            forecast.addClass('margin_left');
+    		            
+    		            dataTable.addClass('margin_left');
+    		            
+        				if(facebook_added != true){
+    		            var facebook_content1 = Y.one('#facebook1');
+       		            radio1 = Y.Node.create('<input type="radio" name="myGroup" value="current" checked/>');
+     		            text1 = Y.Node.create('Post Current Weather');
+       		            facebook_content1.insert(radio1);
+    		            facebook_content1.insert(text1);
+    		            facebook_content1.addClass('margin_left');
+    		            facebook_content1.addClass('font_color');
+
+    		            var facebook_content2 = Y.one('#facebook2');
+       		            radio2 = Y.Node.create('<input type="radio" name="myGroup" value="forecast" />');
+     		            text2 = Y.Node.create('Post Weather Forecast');
+     		            facebook_content2.insert(radio2);
+    		            facebook_content2.insert(text2);
+    		            facebook_content2.addClass('margin_left');
+    		            facebook_content2.addClass('font_color');
+    		            
+    		            var facebook_content3 = Y.one('#facebook3');
+    		            imgFacebook = Y.Node.create('<img src="facebook_logo.jpg" alt="Facebook Logo" height="20" width="60" onclick="postToFacebook()">');
+    		            facebook_content3.insert(imgFacebook);
+    		            facebook_content3.addClass('margin_left2');
+    		            
+    		            var yahoo_content = Y.one('#yahooLogo');
+    		            imgYahoo = Y.Node.create('View Full Details on<BR><a href="'+parsedJSON.weather.link +'"><img src="yahoo_logo.gif" alt="Yahoo Logo" height="20" width="150"></a>');
+    		            yahoo_content.insert(imgYahoo);
+    		            yahoo_content.addClass('margin_left3');
+    		            yahoo_content.addClass('font_color');
+    		            yahoo_content.addClass('font_style6');
+    		            
+    		            facebook_added = true;
+        				}
+    		          });
+    				}
+    				else{
+    					
+        		        YUI().use('node', function (Y) {
+        		            var cityName = Y.one('#cityName');
+        		            var regionCountry = Y.one('#regionCountry');
+        		            var imgWeather = Y.one('#imgWeather');
+        		            var highLow = Y.one('#highLow');
+        		            var temperature = Y.one('#temperature');
+        		            var type = Y.one('#type');
+        		            var dataTable = Y.one('#dataTable');
+        		            var deg = Y.one('#deg');
+        		            var forecast = Y.one('#forecast');
+        		            var datatable = Y.one('#dataTable');
+        		            
+        		            cityName.setHTML("");
+        		            regionCountry.setHTML("Weather information cannot be found!");
+        		            regionCountry.addClass('font_color');
+        		            regionCountry.addClass('font_style_region');
+        		            regionCountry.addClass('margin_left');
+        		            imgWeather.setHTML("");
+        		            highLow.setHTML("");
+        		            temperature.setHTML("");
+        		            deg.setHTML("");
+        		            type.setHTML("");
+        		            forecast.setHTML("");
+        		            datatable.setHTML("");
+        		            
+        		            var facebook_content1 = Y.one('#facebook1');
+        		            var facebook_content2 = Y.one('#facebook2');
+        		            var facebook_content3 = Y.one('#facebook3');
+        		            var yahoo_content = Y.one('#yahooLogo');
+        		            facebook_content1.setHTML("");
+        		            facebook_content2.setHTML("");
+        		            facebook_content3.setHTML("");
+        		            yahoo_content.setHTML("");
+        		            
+        		            facebook_added = false;
+        		        });
+    				}
+
+    			}
+    			else{
+    				//alert("Ready state : " +httpReq.readyState + "\nstatus : " + httpReq.status);
+    				
+    			}
+  			}
+			httpReq.open("GET",url,true);
+			httpReq.send();
+			}
+			catch(err){
+				errorText="An error has occurred on this page\n\n";
+  				errorText+=err;
+  				alert(errorText);		
+			}
+
+			
+		}
+	}
+	
+	function postToFacebook(){	
+		var radios = document.getElementsByName('myGroup');
+		for(var i = 0, l = radios.length; i < l; i++){
+			if (radios[i].checked)
+	        {
+				if (radios[i].value == "current"){
+					FB.ui(
+							  {
+							    method: 'feed',
+							    name: parsedJSON.weather.location.city + ', '+parsedJSON.weather.location.region + ', ' + parsedJSON.weather.location.country,
+							    link: parsedJSON.weather.link,
+							    picture: parsedJSON.weather.img,
+							    caption: 'The current condition for ' + parsedJSON.weather.location.city + ' is ' + parsedJSON.weather.condition.text +'.',
+							    description: 'Temperature is ' + parsedJSON.weather.condition.temp + '&deg;' + parsedJSON.weather.units.temperature,
+							    properties:{
+							        "Look at details":{"text":"here","href":parsedJSON.weather.link}
+							      }
+							  },
+							  function(response) {
+
+							  }
+							);
+
+				}
+				else{
+					var forecastString = parsedJSON.weather.forecast[0].day + ': ' + parsedJSON.weather.forecast[0].text + ", " + parsedJSON.weather.forecast[0].high + "/" + parsedJSON.weather.forecast[0].low + '&deg;' + parsedJSON.weather.units.temperature + ";"; 
+					forecastString = forecastString + parsedJSON.weather.forecast[1].day + ': ' + parsedJSON.weather.forecast[1].text + ", " + parsedJSON.weather.forecast[1].high + "/" + parsedJSON.weather.forecast[1].low + '&deg;' + parsedJSON.weather.units.temperature + ";"; 
+					forecastString = forecastString + parsedJSON.weather.forecast[2].day + ': ' + parsedJSON.weather.forecast[2].text + ", " + parsedJSON.weather.forecast[2].high + "/" + parsedJSON.weather.forecast[2].low + '&deg;' + parsedJSON.weather.units.temperature + ";"; 
+					forecastString = forecastString + parsedJSON.weather.forecast[3].day + ': ' + parsedJSON.weather.forecast[3].text + ", " + parsedJSON.weather.forecast[3].high + "/" + parsedJSON.weather.forecast[3].low + '&deg;' + parsedJSON.weather.units.temperature + ";"; 
+					forecastString = forecastString + parsedJSON.weather.forecast[4].day + ': ' + parsedJSON.weather.forecast[4].text + ", " + parsedJSON.weather.forecast[4].high + "/" + parsedJSON.weather.forecast[4].low + '&deg;' + parsedJSON.weather.units.temperature + ";"; 
+					FB.ui(
+							  {
+							    method: 'feed',
+							    name: parsedJSON.weather.location.city + ', '+parsedJSON.weather.location.region + ', ' + parsedJSON.weather.location.country,
+							    link: parsedJSON.weather.link,
+							    picture: 'http://cs-server.usc.edu:34067/weather.jpg',
+							    caption: 'Weather Forecast for ' + parsedJSON.weather.location.city,
+							    description: forecastString,
+							    properties:{
+							        "Look at details":{"text":"here","href":parsedJSON.weather.link}
+							      }
+							  },
+							  function(response) {
+
+							  }
+							);
+				}
+	        }
+		}
+	}
+
+</script>
+</head>
+<body>
+<div id="fb-root"></div>
+
+<script>
+  window.fbAsyncInit = function() {
+    // init the FB JS SDK
+    FB.init({
+      appId      : '213875128794892',                        // App ID from the app dashboard
+      channelUrl : 'http://cs-server.usc.edu:34067/channel.html', // Channel file for x-domain comms
+      status     : true,                                 // Check Facebook Login status
+      cookie: true,
+      xfbml      : true                                  // Look for social plugins on the page
+    });
+
+    // Additional initialization code such as adding Event Listeners goes here
+  };
+
+  // Load the SDK asynchronously
+  (function(){
+     // If we've already installed the SDK, we're done
+     if (document.getElementById('facebook-jssdk')) {return;}
+
+     // Get the first script element, which we'll use to find the parent node
+     var firstScriptElement = document.getElementsByTagName('script')[0];
+
+     // Create a new script element and set its id
+     var facebookJS = document.createElement('script'); 
+     facebookJS.id = 'facebook-jssdk';
+
+     // Set the new script's source to the source of the Facebook JS SDK
+     facebookJS.src = '//connect.facebook.net/en_US/all.js';
+
+     // Insert the Facebook JS SDK into the DOM
+     firstScriptElement.parentNode.insertBefore(facebookJS, firstScriptElement);
+   }());
+</script>
+
+
+
+	<form id="form1" method="get">
+	<table>
+		<tr>
+			<td><div class="font_style5">Location:</div></td>
+			<td><input id="text1" name="location" value="" type="text" size="45" /></td>
+			<td><input type="button" value="Search" onclick="validate(false)"/></td>
+		</tr>
+	</table>
+	<input id="hidden1" name="location_type" value="" type="hidden" />
+	<input id="hidden2" name="temperature_unit" value="" type="hidden" />
+	<br>
+	<br>
+	<div id="cityName"></div>
+	<div id="regionCountry"></div>
+	<br>
+	<br>
+	<table>
+	<tr>
+		<td>
+		<table>
+			<tr><td colspan="3"><div id="imgWeather"></div></td></tr>
+			<tr><td colspan="3"><div id="highLow"></div></td></tr>
+			<tr><td><div id="temperature"></div></td>
+			<td valign="top"><div id="deg" ></div></td><td valign="top"><div id="type" onclick="validate(true)"></div></td></tr>
+		</table>
+		
+		</td>
+		<td><b><span id="forecast"></span></b>	
+			<div class="yui3-skin-sam">
+				<div id="dataTable"></div>
+			</div>
+		</td>
+		<td>
+		<table>
+		<tr>
+		<td><div id="facebook1"></div></td>
+		</tr>
+		<tr>
+		<td><div id="facebook2"></div></td>
+		</tr>
+		<tr>
+		<td><div id="facebook3"></div></td>
+		</tr>
+		</table>
+		</td>
+	</tr>
+	<tr>
+		<td colspan="3"><div id="yahooLogo"></div></td>
+	</tr>
+	</table>
+</form>
+</body>
+</html>
